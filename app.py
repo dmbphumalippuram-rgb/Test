@@ -7,6 +7,39 @@ from shapely.geometry import Point, MultiPoint
 from shapely.ops import voronoi_diagram, nearest_points
 
 # ==============================================================================
+# 0. DISEASE PARAMETER CONFIG
+# Structured per the Master Parameter Alignment Matrix. Only Dengue is
+# populated with real data for now — Leptospirosis, H1N1 Influenza, and
+# Hepatitis A are stubbed here so they can be added later without touching
+# the rest of the app logic.
+# ==============================================================================
+DISEASE_CONFIG = {
+    "Dengue": {
+        "icon": "🦟",
+        "pathogen_category": "Vector-Borne Viral (Flavivirus)",
+        "risk_driver": "Aedes aegypti / albopictus Mosquitoes",
+        "default_threshold": 30,
+        "slider_min": 5,
+        "slider_max": 100,
+        "slider_step": 5,
+        "radius_base": 4,
+        "radius_multiplier": 0.18,
+        "choropleth_palette": "YlOrRd",
+        "hotspot_color": "#EF4444",
+        "moderate_color": "#F59E0B",
+        "hotspot_line_color": "#DC2626",
+        "moderate_line_color": "#D97706",
+        "primary_action": "Anti-larval spraying, source reduction & fogging",
+    },
+    # "Leptospirosis": {...},   # to be added once case data is available
+    # "H1N1 Influenza": {...},
+    # "Hepatitis A": {...},
+}
+
+DISEASE = "Dengue"
+cfg = DISEASE_CONFIG[DISEASE]
+
+# ==============================================================================
 # 1. PAGE CONFIGURATION & STYLING (banner/menu NOT hidden — kept visible)
 # ==============================================================================
 st.set_page_config(
@@ -143,12 +176,18 @@ map_style = st.sidebar.selectbox(
 
 hotspot_threshold = st.sidebar.slider(
     "Vector Outbreak Threshold",
-    min_value=5,
-    max_value=100,
-    value=30,
-    step=5,
-    help="Blocks with confirmed Dengue cases above this limit are flagged as high risk."
+    min_value=cfg["slider_min"],
+    max_value=cfg["slider_max"],
+    value=cfg["default_threshold"],
+    step=cfg["slider_step"],
+    help=f"Blocks with confirmed {DISEASE} cases above this limit are flagged as high risk."
 )
+
+st.sidebar.markdown("---")
+st.sidebar.subheader(f"{cfg['icon']} Pathogen Profile")
+st.sidebar.markdown(f"**Category:** {cfg['pathogen_category']}")
+st.sidebar.markdown(f"**Primary Risk Driver:** {cfg['risk_driver']}")
+st.sidebar.markdown(f"**Primary Action Triggered:** {cfg['primary_action']}")
 
 # ==============================================================================
 # 4. KPI SUMMARY CARDS
@@ -204,7 +243,7 @@ with left_col:
         data=gdf_merged,
         columns=["Health Blocks", "Number of Cases"],
         key_on="feature.properties.Health Blocks",
-        fill_color="YlOrRd",
+        fill_color=cfg["choropleth_palette"],
         fill_opacity=0.5,
         line_color="#444444",
         line_opacity=0.8,
@@ -229,12 +268,12 @@ with left_col:
         block_name = row['Health Blocks']
         is_hotspot = cases > hotspot_threshold
 
-        color_code = "#D97706" if not is_hotspot else "#DC2626"
-        fill_code = "#F59E0B" if not is_hotspot else "#EF4444"
+        color_code = cfg["moderate_line_color"] if not is_hotspot else cfg["hotspot_line_color"]
+        fill_code = cfg["moderate_color"] if not is_hotspot else cfg["hotspot_color"]
 
         folium.CircleMarker(
             location=[lat, lon],
-            radius=4 + (cases * 0.18),
+            radius=cfg["radius_base"] + (cases * cfg["radius_multiplier"]),
             color=color_code,
             fill=True,
             fill_color=fill_code,
