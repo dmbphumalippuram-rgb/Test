@@ -221,19 +221,24 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ==============================================================================
 left_col, right_col = st.columns([3, 2])
 
+carto_key = st.secrets["CARTO_API_KEY"]
+carto_attr = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
+
 tile_mapping = {
-    "CartoDB Dark Matter": "CartoDB dark_matter",
-    "CartoDB Positron": "CartoDB positron",
-    "OpenStreetMap": "OpenStreetMap"
+    "CartoDB Dark Matter": (f"https://basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}.png?key={carto_key}", carto_attr),
+    "CartoDB Positron": (f"https://basemaps.cartocdn.com/light_all/{{z}}/{{x}}/{{y}}.png?key={carto_key}", carto_attr),
+    "OpenStreetMap": ("OpenStreetMap", None)
 }
 
 with left_col:
     st.subheader("🗺️ Dengue Density Map")
 
+    tile_url, tile_attr = tile_mapping[map_style]
     m = folium.Map(
         location=[gdf_merged['centroid_lat'].mean(), gdf_merged['centroid_lon'].mean()],
         zoom_start=10,
-        tiles=tile_mapping[map_style]
+        tiles=tile_url,
+        attr=tile_attr
     )
 
     # Choropleth base layer
